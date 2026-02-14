@@ -1,65 +1,187 @@
-import Image from "next/image";
+"use client";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
+
+type Filter = "all" | "active" | "completed";
+
+type Todo = {
+  id: number;
+  title: string;
+  completed: boolean;
+};
+
+const STORAGE_KEY = "todo-app-items";
+
+function getInitialTodos(): Todo[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? (JSON.parse(saved) as Todo[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function Home() {
+  const [input, setInput] = useState("");
+  const [todos, setTodos] = useState<Todo[]>(getInitialTodos);
+  const [filter, setFilter] = useState<Filter>("all");
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }, [todos]);
+
+  const visibleTodos = useMemo(() => {
+    if (filter === "active") {
+      return todos.filter((todo) => !todo.completed);
+    }
+    if (filter === "completed") {
+      return todos.filter((todo) => todo.completed);
+    }
+    return todos;
+  }, [filter, todos]);
+
+  const remainingCount = todos.filter((todo) => !todo.completed).length;
+
+  function addTodo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = input.trim();
+    if (!title) {
+      return;
+    }
+
+    setTodos((current) => [
+      { id: Date.now(), title, completed: false },
+      ...current,
+    ]);
+    setInput("");
+  }
+
+  function toggleTodo(id: number) {
+    setTodos((current) =>
+      current.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+      ),
+    );
+  }
+
+  function removeTodo(id: number) {
+    setTodos((current) => current.filter((todo) => todo.id !== id));
+  }
+
+  function clearCompleted() {
+    setTodos((current) => current.filter((todo) => !todo.completed));
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col p-6 sm:p-10">
+      <h1 className="text-3xl font-bold tracking-tight">Todo App</h1>
+      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        Add tasks and track what is done.
+      </p>
+
+      <form className="mt-6 flex gap-2" onSubmit={addTodo}>
+        <input
+          className="flex-1 rounded-md border border-zinc-300 px-3 py-2 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900"
+          placeholder="e.g. Buy groceries"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <button
+          className="rounded-md bg-zinc-900 px-4 py-2 text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          type="submit"
+        >
+          Add
+        </button>
+      </form>
+
+      <section className="mt-5 flex flex-wrap items-center gap-2">
+        <FilterButton
+          active={filter === "all"}
+          label="All"
+          onClick={() => setFilter("all")}
+        />
+        <FilterButton
+          active={filter === "active"}
+          label="Active"
+          onClick={() => setFilter("active")}
+        />
+        <FilterButton
+          active={filter === "completed"}
+          label="Completed"
+          onClick={() => setFilter("completed")}
+        />
+        <span className="ml-auto text-sm text-zinc-600 dark:text-zinc-400">
+          Remaining: {remainingCount}
+        </span>
+      </section>
+
+      <ul className="mt-4 space-y-2">
+        {visibleTodos.map((todo) => (
+          <li
+            key={todo.id}
+            className="flex items-center gap-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <input
+              checked={todo.completed}
+              className="h-4 w-4"
+              type="checkbox"
+              onChange={() => toggleTodo(todo.id)}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <span
+              className={`flex-1 ${todo.completed ? "text-zinc-400 line-through" : ""}`}
+            >
+              {todo.title}
+            </span>
+            <button
+              className="rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+              type="button"
+              onClick={() => removeTodo(todo.id)}
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {visibleTodos.length === 0 && (
+        <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
+          No tasks to show.
+        </p>
+      )}
+
+      <button
+        className="mt-6 w-fit rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        type="button"
+        onClick={clearCompleted}
+      >
+        Clear completed
+      </button>
+    </main>
+  );
+}
+
+type FilterButtonProps = {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+};
+
+function FilterButton({ active, label, onClick }: FilterButtonProps) {
+  return (
+    <button
+      className={`rounded-md px-3 py-1.5 text-sm transition ${
+        active
+          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+          : "border border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+      }`}
+      type="button"
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }
