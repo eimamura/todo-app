@@ -78,4 +78,15 @@ describe("Home", () => {
     expect(screen.queryByText("Completed task")).not.toBeInTheDocument();
     expect(screen.getByText("No tasks to show.")).toBeInTheDocument();
   });
+
+  it("disables clear completed when there are no completed todos", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([{ id: 1, title: "Active task", completed: false }]),
+    );
+
+    render(<Home />);
+
+    expect(screen.getByRole("button", { name: "Clear completed" })).toBeDisabled();
+  });
 });

@@ -58,6 +58,7 @@ export default function Home() {
   }, [filter, todos]);
 
   const remainingCount = todos.filter((todo) => !todo.completed).length;
+  const completedCount = todos.length - remainingCount;
 
   function addTodo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -199,7 +200,8 @@ export default function Home() {
       )}
 
       <button
-        className="mt-6 w-fit rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="mt-6 w-fit rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-900 dark:disabled:hover:bg-transparent"
+        disabled={completedCount === 0}
         type="button"
         onClick={clearCompleted}
       >
