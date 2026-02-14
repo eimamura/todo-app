@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 type Filter = "all" | "active" | "completed";
 
@@ -11,6 +12,13 @@ type Todo = {
 };
 
 const STORAGE_KEY = "todo-app-items";
+const RANDOM_IMAGES = [
+  "/next.svg",
+  "/vercel.svg",
+  "/file.svg",
+  "/globe.svg",
+  "/window.svg",
+];
 
 function getInitialTodos(): Todo[] {
   if (typeof window === "undefined") {
@@ -25,10 +33,15 @@ function getInitialTodos(): Todo[] {
   }
 }
 
+function pickRandomImage() {
+  return RANDOM_IMAGES[Math.floor(Math.random() * RANDOM_IMAGES.length)];
+}
+
 export default function Home() {
   const [input, setInput] = useState("");
   const [todos, setTodos] = useState<Todo[]>(getInitialTodos);
   const [filter, setFilter] = useState<Filter>("all");
+  const [randomImage, setRandomImage] = useState(pickRandomImage);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
@@ -76,12 +89,44 @@ export default function Home() {
     setTodos((current) => current.filter((todo) => !todo.completed));
   }
 
+  function showRandomImage() {
+    setRandomImage((current) => {
+      if (RANDOM_IMAGES.length < 2) {
+        return current;
+      }
+
+      let next = current;
+      while (next === current) {
+        next = pickRandomImage();
+      }
+      return next;
+    });
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col p-6 sm:p-10">
       <h1 className="text-3xl font-bold tracking-tight">Todo App</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
         Add tasks and track what is done.
       </p>
+
+      <section className="mt-6 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
+        <h2 className="text-lg font-semibold">Random Image</h2>
+        <Image
+          alt="Random icon"
+          className="mt-3 h-16 w-16"
+          height={64}
+          src={randomImage}
+          width={64}
+        />
+        <button
+          className="mt-3 rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          type="button"
+          onClick={showRandomImage}
+        >
+          Show another image
+        </button>
+      </section>
 
       <form className="mt-6 flex gap-2" onSubmit={addTodo}>
         <input
